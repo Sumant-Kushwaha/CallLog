@@ -60,7 +60,8 @@ object CallLogHelper {
         val today = Calendar.getInstance()
         val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
 
-        val grouped = calls.groupBy { call ->
+        // First group by time period
+        val groupedByTime = calls.groupBy { call ->
             calendar.timeInMillis = call.date
             when {
                 isSameDay(calendar, today) -> "Today"
@@ -70,11 +71,28 @@ object CallLogHelper {
             }
         }
 
+        // Then for each time period, group by number and create consolidated CallLogItems
+        val consolidatedGroups = groupedByTime.mapValues { (_, timePeriodCalls) ->
+            timePeriodCalls.groupBy { it.number }
+                .map { (_, numberCalls) ->
+                    // Use the most recent call's data but add count
+                    val mostRecent = numberCalls.maxBy { it.date }
+                    CallLogItem(
+                        number = mostRecent.number,
+                        name = mostRecent.name,
+                        type = mostRecent.type,
+                        date = mostRecent.date,
+                        duration = mostRecent.duration,
+                        count = numberCalls.size
+                    )
+                }
+        }
+
         return listOf(
-            TimeFilter("Today", grouped["Today"] ?: emptyList()),
-            TimeFilter("Yesterday", grouped["Yesterday"] ?: emptyList()),
-            TimeFilter("This Week", grouped["This Week"] ?: emptyList()),
-            TimeFilter("Older", grouped["Older"] ?: emptyList())
+            TimeFilter("Today", consolidatedGroups["Today"] ?: emptyList()),
+            TimeFilter("Yesterday", consolidatedGroups["Yesterday"] ?: emptyList()),
+            TimeFilter("This Week", consolidatedGroups["This Week"] ?: emptyList()),
+            TimeFilter("Older", consolidatedGroups["Older"] ?: emptyList())
         ).filter { it.calls.isNotEmpty() }
     }
 

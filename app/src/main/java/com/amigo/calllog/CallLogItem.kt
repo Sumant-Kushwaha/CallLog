@@ -9,5 +9,6 @@ data class CallLogItem(
     val name: String?,
     val type: Int,
     val date: Long,
-    val duration: Long
+    val duration: Long,
+    val count: Int = 1  // Default to 1 for backward compatibility
 ) : Parcelable
