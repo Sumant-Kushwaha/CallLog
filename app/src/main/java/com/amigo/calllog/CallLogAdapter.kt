@@ -1,13 +1,17 @@
 // CallLogAdapter.kt
 package com.amigo.calllog
 
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
 class CallLogAdapter(private val items: List<ListItem>) :
@@ -66,15 +70,21 @@ class CallLogAdapter(private val items: List<ListItem>) :
         private val btnCall: ImageButton = view.findViewById(R.id.btnCall)
 
         fun bind(call: CallLogItem) {
-            tvName.text = call.name ?: "Unknown"
+            // Show name if available, otherwise show the number
+            tvName.text = call.name ?: call.number
             tvNumber.text = call.number
             tvDuration.text = "${call.duration} sec"
 
             btnCall.setOnClickListener {
-                val intent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse("tel:${call.number}")
+                val context = it.context
+                if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                    val intent = Intent(Intent.ACTION_CALL).apply {
+                        data = Uri.parse("tel:${call.number}")
+                    }
+                    context.startActivity(intent)
+                } else {
+                    ActivityCompat.requestPermissions(context as Activity, arrayOf(android.Manifest.permission.CALL_PHONE), 1)
                 }
-                it.context.startActivity(intent)
             }
         }
     }
