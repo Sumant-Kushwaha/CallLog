@@ -1,25 +1,35 @@
-<?xml version="1.0" encoding="utf-8"?>
+<!-- item_call_log.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="horizontal"
+    android:padding="8dp">
 
     <TextView
         android:id="@+id/tvName"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="16sp"/>
+        android:layout_weight="1"
+        android:text="Name" />
 
     <TextView
         android:id="@+id/tvNumber"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="14sp"/>
+        android:layout_weight="1"
+        android:text="Number" />
 
     <TextView
         android:id="@+id/tvDuration"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="12sp"/>
+        android:layout_weight="1"
+        android:text="Duration" />
+
+    <ImageButton
+        android:id="@+id/btnCall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@android:drawable/ic_menu_call"
+        android:contentDescription="Call" />
 </LinearLayout>
