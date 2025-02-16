@@ -13,9 +13,9 @@ class MissedCallsFragment : Fragment() {
     private lateinit var adapter: CallLogAdapter
 
     companion object {
-        fun newInstance(callLogs: ArrayList<CallLogItem>) = MissedCallsFragment().apply {
+        fun newInstance(timeFilters: List<TimeFilter>) = MissedCallsFragment().apply {
             arguments = Bundle().apply {
-                putParcelableArrayList("callLogs", callLogs)
+                putParcelableArrayList("timeFilters", ArrayList(timeFilters))
             }
         }
     }
@@ -24,15 +24,21 @@ class MissedCallsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_missed_calls, container, false)
-        recyclerView = view.findViewById(R.id.recyclerView)
-        return view
+        return inflater.inflate(R.layout.fragment_missed_calls, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val callLogs = arguments?.getParcelableArrayList<CallLogItem>("callLogs") ?: ArrayList()
-        adapter = CallLogAdapter(callLogs)
+        recyclerView = view.findViewById(R.id.recyclerView)
+        val timeFilters = arguments?.getParcelableArrayList<TimeFilter>("timeFilters") ?: ArrayList()
+
+        val items = mutableListOf<CallLogAdapter.ListItem>()
+        timeFilters.forEach { filter ->
+            items.add(CallLogAdapter.ListItem.HeaderItem(filter.title))
+            items.addAll(filter.calls.map { CallLogAdapter.ListItem.CallItem(it) })
+        }
+
+        adapter = CallLogAdapter(items)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = adapter
     }

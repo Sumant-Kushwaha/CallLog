@@ -13,9 +13,9 @@ class ReceivedCallsFragment : Fragment() {
     private lateinit var adapter: CallLogAdapter
 
     companion object {
-        fun newInstance(callLogs: ArrayList<CallLogItem>) = ReceivedCallsFragment().apply {
+        fun newInstance(timeFilters: List<TimeFilter>) = ReceivedCallsFragment().apply {
             arguments = Bundle().apply {
-                putParcelableArrayList("callLogs", callLogs)
+                putParcelableArrayList("timeFilters", ArrayList(timeFilters))
             }
         }
     }
@@ -30,8 +30,15 @@ class ReceivedCallsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
-        val callLogs = arguments?.getParcelableArrayList<CallLogItem>("callLogs") ?: ArrayList()
-        adapter = CallLogAdapter(callLogs)
+        val timeFilters = arguments?.getParcelableArrayList<TimeFilter>("timeFilters") ?: ArrayList()
+
+        val items = mutableListOf<CallLogAdapter.ListItem>()
+        timeFilters.forEach { filter ->
+            items.add(CallLogAdapter.ListItem.HeaderItem(filter.title))
+            items.addAll(filter.calls.map { CallLogAdapter.ListItem.CallItem(it) })
+        }
+
+        adapter = CallLogAdapter(items)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = adapter
     }

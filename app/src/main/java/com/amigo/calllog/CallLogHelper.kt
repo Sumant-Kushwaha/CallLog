@@ -2,12 +2,13 @@ package com.amigo.calllog
 
 import android.content.Context
 import android.provider.CallLog
+import java.util.Calendar
 
 object CallLogHelper {
-    fun getCallLogs(context: Context): Triple<List<CallLogItem>, List<CallLogItem>, List<CallLogItem>> {
-        val missedCalls = mutableListOf<CallLogItem>()
-        val receivedCalls = mutableListOf<CallLogItem>()
-        val dialedCalls = mutableListOf<CallLogItem>()
+    fun getCallLogs(context: Context): Triple<List<TimeFilter>, List<TimeFilter>, List<TimeFilter>> {
+        val missed = mutableListOf<CallLogItem>()
+        val received = mutableListOf<CallLogItem>()
+        val dialed = mutableListOf<CallLogItem>()
 
         val projection = arrayOf(
             CallLog.Calls.NUMBER,
@@ -40,13 +41,45 @@ object CallLogHelper {
                 val callLogItem = CallLogItem(number, name, type, date, duration)
 
                 when (type) {
-                    CallLog.Calls.MISSED_TYPE -> missedCalls.add(callLogItem)
-                    CallLog.Calls.INCOMING_TYPE -> receivedCalls.add(callLogItem)
-                    CallLog.Calls.OUTGOING_TYPE -> dialedCalls.add(callLogItem)
+                    CallLog.Calls.MISSED_TYPE -> missed.add(callLogItem)
+                    CallLog.Calls.INCOMING_TYPE -> received.add(callLogItem)
+                    CallLog.Calls.OUTGOING_TYPE -> dialed.add(callLogItem)
                 }
             }
         }
 
-        return Triple(missedCalls, receivedCalls, dialedCalls)
+        return Triple(
+            groupByTimePeriod(missed),
+            groupByTimePeriod(received),
+            groupByTimePeriod(dialed)
+        )
+    }
+
+    private fun groupByTimePeriod(calls: List<CallLogItem>): List<TimeFilter> {
+        val calendar = Calendar.getInstance()
+        val today = Calendar.getInstance()
+        val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+
+        val grouped = calls.groupBy { call ->
+            calendar.timeInMillis = call.date
+            when {
+                isSameDay(calendar, today) -> "Today"
+                isSameDay(calendar, yesterday) -> "Yesterday"
+                calendar.get(Calendar.WEEK_OF_YEAR) == today.get(Calendar.WEEK_OF_YEAR) -> "This Week"
+                else -> "Older"
+            }
+        }
+
+        return listOf(
+            TimeFilter("Today", grouped["Today"] ?: emptyList()),
+            TimeFilter("Yesterday", grouped["Yesterday"] ?: emptyList()),
+            TimeFilter("This Week", grouped["This Week"] ?: emptyList()),
+            TimeFilter("Older", grouped["Older"] ?: emptyList())
+        ).filter { it.calls.isNotEmpty() }
+    }
+
+    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
 }
