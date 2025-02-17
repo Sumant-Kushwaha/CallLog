@@ -14,6 +14,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var tabLayout: TabLayout
     private val REQUEST_READ_CALL_LOG = 123
+    private val REQUEST_READ_SMS = 124
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,10 +23,10 @@ class MainActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.viewPager)
         tabLayout = findViewById(R.id.tabLayout)
 
-        if (checkPermission()) {
+        if (checkCallLogPermission() && checkSmsPermission()) {
             setupViewPager()
         } else {
-            requestPermission()
+            requestPermissions()
         }
     }
 
@@ -38,24 +39,44 @@ class MainActivity : AppCompatActivity() {
                 0 -> "Missed"
                 1 -> "Received"
                 2 -> "Dialed"
+                3 -> "Messages"
                 else -> throw IllegalArgumentException()
             }
         }.attach()
     }
 
-    private fun checkPermission(): Boolean {
+    private fun checkCallLogPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.READ_CALL_LOG
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun requestPermission() {
-        ActivityCompat.requestPermissions(
+    private fun checkSmsPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
             this,
-            arrayOf(Manifest.permission.READ_CALL_LOG),
-            REQUEST_READ_CALL_LOG
-        )
+            Manifest.permission.READ_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestPermissions() {
+        val permissionsToRequest = mutableListOf<String>()
+        
+        if (!checkCallLogPermission()) {
+            permissionsToRequest.add(Manifest.permission.READ_CALL_LOG)
+        }
+        
+        if (!checkSmsPermission()) {
+            permissionsToRequest.add(Manifest.permission.READ_SMS)
+        }
+        
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(
+                this,
+                permissionsToRequest.toTypedArray(),
+                REQUEST_READ_CALL_LOG
+            )
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -64,10 +85,11 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_READ_CALL_LOG && grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED
-        ) {
-            setupViewPager()
+        
+        if (requestCode == REQUEST_READ_CALL_LOG) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                setupViewPager()
+            }
         }
     }
 }

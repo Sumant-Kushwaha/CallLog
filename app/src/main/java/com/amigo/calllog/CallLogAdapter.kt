@@ -74,7 +74,18 @@ class CallLogAdapter(private val items: List<ListItem>) :
             val displayName = call.name ?: call.number
             tvName.text = if (call.count > 1) "$displayName (${call.count})" else displayName
             tvNumber.text = call.number
-            tvDuration.text = "${call.duration} sec"
+            
+            // Format duration in hours, minutes, and seconds
+            val hours = call.duration / 3600
+            val minutes = (call.duration % 3600) / 60
+            val seconds = call.duration % 60
+            
+            val duration = when {
+                hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
+                minutes > 0 -> "${minutes}m ${seconds}s"
+                else -> "${seconds}s"
+            }
+            tvDuration.text = duration
 
             btnCall.setOnClickListener {
                 val context = it.context
