@@ -18,6 +18,8 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.snackbar.Snackbar
 
 class MessagesFragment : Fragment() {
@@ -26,6 +28,9 @@ class MessagesFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var emptyView: TextView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var chipGroup: ChipGroup
+    private var currentFilter = MessageFilter.ALL
+    private var allMessages = listOf<MessageItem>()
 
     companion object {
         fun newInstance() = MessagesFragment()
@@ -34,6 +39,12 @@ class MessagesFragment : Fragment() {
             Manifest.permission.READ_SMS,
             Manifest.permission.READ_CONTACTS
         )
+    }
+
+    enum class MessageFilter {
+        ALL,
+        RECEIVED,
+        SENT
     }
 
     override fun onCreateView(
@@ -52,9 +63,11 @@ class MessagesFragment : Fragment() {
         progressBar = view.findViewById(R.id.progressBar)
         emptyView = view.findViewById(R.id.emptyView)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
+        chipGroup = view.findViewById(R.id.chipGroup)
 
         setupRecyclerView()
         setupSwipeRefresh()
+        setupChipGroup()
         checkPermissionsAndLoadMessages()
     }
 
@@ -67,6 +80,42 @@ class MessagesFragment : Fragment() {
     private fun setupSwipeRefresh() {
         swipeRefreshLayout.setOnRefreshListener {
             loadMessages()
+        }
+    }
+
+    private fun setupChipGroup() {
+        chipGroup.setOnCheckedChangeListener { group, checkedId ->
+            currentFilter = when (checkedId) {
+                R.id.chipReceived -> MessageFilter.RECEIVED
+                R.id.chipSent -> MessageFilter.SENT
+                else -> MessageFilter.ALL
+            }
+            filterMessages()
+        }
+    }
+
+    private fun filterMessages() {
+        val filteredMessages = when (currentFilter) {
+            MessageFilter.ALL -> allMessages
+            MessageFilter.RECEIVED -> allMessages.filter { 
+                it.type == Telephony.Sms.MESSAGE_TYPE_INBOX 
+            }
+            MessageFilter.SENT -> allMessages.filter { 
+                it.type == Telephony.Sms.MESSAGE_TYPE_SENT 
+            }
+        }
+
+        adapter = MessageAdapter(filteredMessages)
+        recyclerView.adapter = adapter
+
+        // Update empty view visibility
+        if (filteredMessages.isEmpty()) {
+            emptyView.text = "No ${currentFilter.name.lowercase()} messages found"
+            emptyView.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            emptyView.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
         }
     }
 
@@ -111,17 +160,8 @@ class MessagesFragment : Fragment() {
         emptyView.visibility = View.GONE
 
         try {
-            val messages = getMessages()
-            adapter = MessageAdapter(messages)
-            recyclerView.adapter = adapter
-
-            if (messages.isEmpty()) {
-                emptyView.visibility = View.VISIBLE
-                recyclerView.visibility = View.GONE
-            } else {
-                emptyView.visibility = View.GONE
-                recyclerView.visibility = View.VISIBLE
-            }
+            allMessages = getMessages()
+            filterMessages() // This will apply the current filter
         } catch (e: Exception) {
             showError("Error loading messages: ${e.message}")
         } finally {
