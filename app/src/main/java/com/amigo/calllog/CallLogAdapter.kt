@@ -70,8 +70,9 @@ class CallLogAdapter(private val items: List<ListItem>) :
         private val btnCall: ImageButton = view.findViewById(R.id.btnCall)
 
         fun bind(call: CallLogItem) {
-            // Show name if available, otherwise show the number
-            tvName.text = call.name ?: call.number
+            // Show name if available, otherwise show the number, and append count in parentheses if > 1
+            val displayName = call.name ?: call.number
+            tvName.text = if (call.count > 1) "$displayName (${call.count})" else displayName
             tvNumber.text = call.number
             tvDuration.text = "${call.duration} sec"
 
