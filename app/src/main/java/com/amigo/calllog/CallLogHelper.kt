@@ -67,7 +67,26 @@ object CallLogHelper {
                 isSameDay(calendar, today) -> "Today"
                 isSameDay(calendar, yesterday) -> "Yesterday"
                 calendar.get(Calendar.WEEK_OF_YEAR) == today.get(Calendar.WEEK_OF_YEAR) -> "This Week"
-                else -> "Older"
+                else -> {
+                    // Format date as "MMM dd" (e.g., "Feb 17")
+                    val month = when(calendar.get(Calendar.MONTH)) {
+                        Calendar.JANUARY -> "Jan"
+                        Calendar.FEBRUARY -> "Feb"
+                        Calendar.MARCH -> "Mar"
+                        Calendar.APRIL -> "Apr"
+                        Calendar.MAY -> "May"
+                        Calendar.JUNE -> "Jun"
+                        Calendar.JULY -> "Jul"
+                        Calendar.AUGUST -> "Aug"
+                        Calendar.SEPTEMBER -> "Sep"
+                        Calendar.OCTOBER -> "Oct"
+                        Calendar.NOVEMBER -> "Nov"
+                        Calendar.DECEMBER -> "Dec"
+                        else -> ""
+                    }
+                    val day = calendar.get(Calendar.DAY_OF_MONTH)
+                    "$month $day"
+                }
             }
         }
 
@@ -88,12 +107,43 @@ object CallLogHelper {
                 }
         }
 
-        return listOf(
+        // Sort the dates for older calls
+        val olderDates = groupedByTime.keys
+            .filter { it !in listOf("Today", "Yesterday", "This Week") }
+            .sortedByDescending { date ->
+                // Parse the date string back to milliseconds for sorting
+                val parts = date.split(" ")
+                if (parts.size == 2) {
+                    val month = when(parts[0]) {
+                        "Jan" -> Calendar.JANUARY
+                        "Feb" -> Calendar.FEBRUARY
+                        "Mar" -> Calendar.MARCH
+                        "Apr" -> Calendar.APRIL
+                        "May" -> Calendar.MAY
+                        "Jun" -> Calendar.JUNE
+                        "Jul" -> Calendar.JULY
+                        "Aug" -> Calendar.AUGUST
+                        "Sep" -> Calendar.SEPTEMBER
+                        "Oct" -> Calendar.OCTOBER
+                        "Nov" -> Calendar.NOVEMBER
+                        "Dec" -> Calendar.DECEMBER
+                        else -> 0
+                    }
+                    val day = parts[1].toIntOrNull() ?: 1
+                    Calendar.getInstance().apply {
+                        set(Calendar.MONTH, month)
+                        set(Calendar.DAY_OF_MONTH, day)
+                    }.timeInMillis
+                } else 0L
+            }
+
+        return (listOf(
             TimeFilter("Today", consolidatedGroups["Today"] ?: emptyList()),
             TimeFilter("Yesterday", consolidatedGroups["Yesterday"] ?: emptyList()),
-            TimeFilter("This Week", consolidatedGroups["This Week"] ?: emptyList()),
-            TimeFilter("Older", consolidatedGroups["Older"] ?: emptyList())
-        ).filter { it.calls.isNotEmpty() }
+            TimeFilter("This Week", consolidatedGroups["This Week"] ?: emptyList())
+        ) + olderDates.map { date ->
+            TimeFilter(date, consolidatedGroups[date] ?: emptyList())
+        }).filter { it.calls.isNotEmpty() }
     }
 
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
