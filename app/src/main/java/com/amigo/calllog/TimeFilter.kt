@@ -9,12 +9,13 @@ import java.time.format.DateTimeFormatter
 
 @Parcelize
 data class TimeFilter(
-    val date: LocalDate = LocalDate.now(),
+    val date: LocalDate,
     val calls: List<CallLogItem>
 ) : Parcelable {
     val title: String = when {
-        date == LocalDate.now() -> "Calls"
-        else -> "Calls"
+        date == LocalDate.now() -> "Today"
+        date == LocalDate.now().minusDays(1) -> "Yesterday"
+        else -> date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
     }
 
     companion object : Parceler<TimeFilter> {
@@ -35,7 +36,12 @@ data class TimeFilter(
         }
 
         fun groupCallsByDate(calls: List<CallLogItem>): List<TimeFilter> {
-            return listOf(TimeFilter(LocalDate.now(), calls))
+            return calls
+                .groupBy { it.date } 
+                .map { (date, groupedCalls) -> 
+                    TimeFilter(date, groupedCalls)
+                }
+                .sortedByDescending { it.date }
         }
     }
 }
