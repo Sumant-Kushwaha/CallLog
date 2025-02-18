@@ -24,7 +24,8 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="8dp"
                 app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#1f1d25">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -51,8 +52,11 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Auto-Reply for Missed Calls"
-                                android:textAppearance="?attr/textAppearanceSubtitle1" />
+                                android:text="Auto Reply"
+                                android:textAppearance="?attr/textAppearanceSubtitle1"
+                                android:textColor="#FFFFFF"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
 
                             <TextView
                                 android:id="@+id/messagePreview"
@@ -62,7 +66,8 @@
                                 android:ellipsize="end"
                                 android:maxLines="1"
                                 android:textAppearance="?attr/textAppearanceBody2"
-                                android:textColor="?android:textColorSecondary" />
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="14sp" />
 
                         </LinearLayout>
 
@@ -111,7 +116,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="Placeholders: {name} - Contact name, {time} - Current time"
-                            android:textAppearance="?attr/textAppearanceCaption" />
+                            android:textAppearance="?attr/textAppearanceCaption"
+                            android:textColor="#B3FFFFFF" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/buttonSave"
@@ -121,7 +127,8 @@
                             android:layout_gravity="end"
                             android:layout_marginTop="8dp"
                             android:enabled="false"
-                            android:text="Save" />
+                            android:text="Save"
+                            android:textColor="#FFFFFF" />
 
                     </LinearLayout>
 
@@ -134,9 +141,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginVertical="8dp"
                 app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#1f1d25">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -145,16 +153,28 @@
                     android:padding="10dp">
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Filter Messages"
-                        android:textAppearance="?attr/textAppearanceSubtitle1" />
+                        android:text="Message Filters"
+                        android:textAppearance="?attr/textAppearanceSubtitle1"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Filter your messages"
+                        android:textAppearance="?attr/textAppearanceBody2"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="14sp" />
 
                     <com.google.android.material.chip.ChipGroup
                         android:id="@+id/chipGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="4dp"
                         app:singleSelection="true">
 
                         <com.google.android.material.chip.Chip
@@ -163,21 +183,24 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            android:text="All" />
+                            android:text="All"
+                            android:textColor="#FFFFFF" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipReceived"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Received" />
+                            android:text="Received"
+                            android:textColor="#FFFFFF" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipSent"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Sent" />
+                            android:text="Sent"
+                            android:textColor="#FFFFFF" />
 
                     </com.google.android.material.chip.ChipGroup>
 
@@ -213,6 +236,7 @@
                 android:layout_gravity="center"
                 android:text="No messages found"
                 android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="#FFFFFF"
                 android:visibility="gone" />
 
             <ProgressBar
