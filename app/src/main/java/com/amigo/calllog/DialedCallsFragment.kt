@@ -5,7 +5,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.material3.ListItem
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -14,9 +13,11 @@ class DialedCallsFragment : Fragment() {
     private lateinit var adapter: CallLogAdapter
 
     companion object {
-        fun newInstance(timeFilters: List<TimeFilter>) = DialedCallsFragment().apply {
-            arguments = Bundle().apply {
-                putParcelableArrayList("timeFilters", ArrayList(timeFilters))
+        fun newInstance(calls: List<CallLogItem>): DialedCallsFragment {
+            return DialedCallsFragment().apply {
+                arguments = Bundle().apply {
+                    putParcelableArrayList("calls", ArrayList(calls))
+                }
             }
         }
     }
@@ -31,7 +32,9 @@ class DialedCallsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
-        val timeFilters = arguments?.getParcelableArrayList<TimeFilter>("timeFilters") ?: ArrayList()
+        
+        val calls = arguments?.getParcelableArrayList<CallLogItem>("calls") ?: listOf()
+        val timeFilters = TimeFilter.groupCallsByDate(calls)
 
         val items = mutableListOf<CallLogAdapter.ListItem>()
         timeFilters.forEach { filter ->

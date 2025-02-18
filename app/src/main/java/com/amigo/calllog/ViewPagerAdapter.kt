@@ -11,9 +11,15 @@ class ViewPagerAdapter(activity: AppCompatActivity) : FragmentStateAdapter(activ
 
     override fun createFragment(position: Int): Fragment {
         return when (position) {
-            0 -> MissedCallsFragment.newInstance(callLogs.first)
-            1 -> ReceivedCallsFragment.newInstance(callLogs.second)
-            2 -> DialedCallsFragment.newInstance(callLogs.third)
+            0 -> MissedCallsFragment.newInstance(
+                callLogs.first.flatMap { it.calls }
+            )
+            1 -> ReceivedCallsFragment.newInstance(
+                callLogs.second.flatMap { it.calls }
+            )
+            2 -> DialedCallsFragment.newInstance(
+                callLogs.third.flatMap { it.calls }
+            )
             3 -> MessagesFragment.newInstance()
             else -> throw IllegalArgumentException()
         }

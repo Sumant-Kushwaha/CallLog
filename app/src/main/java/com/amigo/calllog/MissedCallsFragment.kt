@@ -13,9 +13,11 @@ class MissedCallsFragment : Fragment() {
     private lateinit var adapter: CallLogAdapter
 
     companion object {
-        fun newInstance(timeFilters: List<TimeFilter>) = MissedCallsFragment().apply {
-            arguments = Bundle().apply {
-                putParcelableArrayList("timeFilters", ArrayList(timeFilters))
+        fun newInstance(calls: List<CallLogItem>): MissedCallsFragment {
+            return MissedCallsFragment().apply {
+                arguments = Bundle().apply {
+                    putParcelableArrayList("calls", ArrayList(calls))
+                }
             }
         }
     }
@@ -30,7 +32,9 @@ class MissedCallsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
-        val timeFilters = arguments?.getParcelableArrayList<TimeFilter>("timeFilters") ?: ArrayList()
+        
+        val calls = arguments?.getParcelableArrayList<CallLogItem>("calls") ?: listOf()
+        val timeFilters = TimeFilter.groupCallsByDate(calls)
 
         val items = mutableListOf<CallLogAdapter.ListItem>()
         timeFilters.forEach { filter ->
