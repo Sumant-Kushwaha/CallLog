@@ -1,26 +1,25 @@
 package com.amigo.calllog
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.provider.CallLog
+import androidx.core.content.ContextCompat
 import java.time.LocalDate
 import java.util.Calendar
 
 object CallLogHelper {
     fun getCallLogs(context: Context): Triple<List<TimeFilter>, List<TimeFilter>, List<TimeFilter>> {
-        val missed = mutableListOf<CallLogItem>()
-        val received = mutableListOf<CallLogItem>()
-        val dialed = mutableListOf<CallLogItem>()
+        // Check and request permissions if not granted
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_CALL_LOG)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return Triple(emptyList(), emptyList(), emptyList())
+        }
 
-        val projection = arrayOf(
-            CallLog.Calls.NUMBER,
-            CallLog.Calls.CACHED_NAME,
-            CallLog.Calls.TYPE,
-            CallLog.Calls.DATE
-        )
-
-        context.contentResolver.query(
+        // Fetch call logs from the system
+        val callLogs = context.contentResolver.query(
             CallLog.Calls.CONTENT_URI,
-            projection,
+            null,
             null,
             null,
             CallLog.Calls.DATE + " DESC"
@@ -30,37 +29,50 @@ object CallLogHelper {
             val typeIndex = cursor.getColumnIndex(CallLog.Calls.TYPE)
             val dateIndex = cursor.getColumnIndex(CallLog.Calls.DATE)
 
+            val callLogItems = mutableListOf<CallLogItem>()
+
             while (cursor.moveToNext()) {
-                val number = cursor.getString(numberIndex)
+                val number = cursor.getString(numberIndex) ?: continue
                 val name = cursor.getString(nameIndex)
                 val type = cursor.getInt(typeIndex)
                 val date = LocalDate.ofEpochDay(cursor.getLong(dateIndex) / 86400000)
 
-                val callLogItem = CallLogItem(number, name, type, date)
-
-                when (type) {
-                    CallLog.Calls.MISSED_TYPE -> missed.add(callLogItem)
-                    CallLog.Calls.INCOMING_TYPE -> received.add(callLogItem)
-                    CallLog.Calls.OUTGOING_TYPE -> dialed.add(callLogItem)
-                }
+                callLogItems.add(
+                    CallLogItem(
+                        number = number,
+                        name = name,
+                        type = type,
+                        date = date
+                    )
+                )
             }
-        }
+            callLogItems
+        } ?: emptyList()
 
-        return Triple(
-            groupByTimePeriod(missed),
-            groupByTimePeriod(received),
-            groupByTimePeriod(dialed)
-        )
+        // Group and filter call logs
+        val missedCalls = callLogs
+            .filter { it.type == CallLogItem.MISSED_CALL_TYPE }
+            .let { groupByTimePeriod(it) }
+
+        val receivedCalls = callLogs
+            .filter { it.type == CallLogItem.RECEIVED_CALL_TYPE }
+            .let { groupByTimePeriod(it) }
+
+        val dialedCalls = callLogs
+            .filter { it.type == CallLogItem.DIALED_CALL_TYPE }
+            .let { groupByTimePeriod(it) }
+
+        return Triple(missedCalls, receivedCalls, dialedCalls)
     }
 
     private fun groupByTimePeriod(calls: List<CallLogItem>): List<TimeFilter> {
-        // Group calls by date and number, merging duplicate calls
+        // Group calls by date and number
         val consolidatedCalls = calls
             .groupBy { call -> 
                 Pair(call.date, call.number)
             }
-            .map { (key, groupedCalls) ->
-                // Merge calls with the same date and number
+            .map { (_, groupedCalls) ->
+                // Merge calls with the same date and number, keeping track of total count
                 CallLogItem(
                     number = groupedCalls.first().number,
                     name = groupedCalls.first().name,
@@ -74,9 +86,9 @@ object CallLogHelper {
         val consolidatedGroups = consolidatedCalls
             .groupBy { it.date }
 
-        // Create TimeFilters for each date group
+        // Create TimeFilters for each date group, preserving original order
         return consolidatedGroups.map { (date, calls) ->
-            TimeFilter(date, calls.sortedBy { it.number })
-        }.sortedByDescending { it.date }
+            TimeFilter(date, calls)
+        }
     }
 }

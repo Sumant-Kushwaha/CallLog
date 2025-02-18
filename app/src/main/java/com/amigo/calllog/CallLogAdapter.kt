@@ -8,11 +8,13 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewbinding.ViewBinding
+import com.amigo.calllog.databinding.ItemCallLogBinding
+import com.amigo.calllog.databinding.ItemHeaderBinding
 
 class CallLogAdapter(private val items: List<ListItem>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -37,44 +39,41 @@ class CallLogAdapter(private val items: List<ListItem>) :
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
             TYPE_HEADER -> HeaderViewHolder(
-                LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_header, parent, false)
+                ItemHeaderBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             )
             else -> CallViewHolder(
-                LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_call_log, parent, false)
+                ItemCallLogBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             )
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is ListItem.HeaderItem -> (holder as HeaderViewHolder).bind(item.title)
-            is ListItem.CallItem -> (holder as CallViewHolder).bind(item.call)
+            is ListItem.HeaderItem -> {
+                (holder as HeaderViewHolder).bind(item.title)
+            }
+            is ListItem.CallItem -> {
+                (holder as CallViewHolder).bind(item.call)
+            }
         }
     }
 
     override fun getItemCount(): Int = items.size
 
-    class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val tvTitle: TextView = view.findViewById(R.id.tvHeader)
+    class HeaderViewHolder(private val binding: ItemHeaderBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(title: String) {
-            tvTitle.text = title
+            binding.tvHeader.text = title
         }
     }
 
-    class CallViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val tvName: TextView = view.findViewById(R.id.tvName)
-        private val tvNumber: TextView = view.findViewById(R.id.tvNumber)
-        private val btnCall: ImageButton = view.findViewById(R.id.btnCall)
-
+    inner class CallViewHolder(private val binding: ItemCallLogBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(call: CallLogItem) {
-            // Show name if available, otherwise show the number, and append count in parentheses if > 1
-            val displayName = call.name ?: call.number
-            tvName.text = if (call.count > 1) "$displayName (${call.count})" else displayName
-            tvNumber.text = call.number
+            // Always display name with count in braces
+            val displayName = "${call.name ?: call.number} (${call.count})"
+            binding.tvName.text = displayName
+            binding.tvNumber.text = call.number
 
-            btnCall.setOnClickListener {
+            binding.btnCall.setOnClickListener {
                 val context = it.context
                 if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
                     val intent = Intent(Intent.ACTION_CALL).apply {
@@ -85,6 +84,16 @@ class CallLogAdapter(private val items: List<ListItem>) :
                     ActivityCompat.requestPermissions(context as Activity, arrayOf(android.Manifest.permission.CALL_PHONE), 1)
                 }
             }
+
+            // Set call type icon
+            binding.ivContactIcon.setImageResource(
+                when (call.type) {
+                    CallLogItem.MISSED_CALL_TYPE -> R.drawable.ic_contact_default
+                    CallLogItem.RECEIVED_CALL_TYPE -> R.drawable.ic_contact_default
+                    CallLogItem.DIALED_CALL_TYPE -> R.drawable.ic_contact_default
+                    else -> R.drawable.ic_contact_default
+                }
+            )
         }
     }
 }

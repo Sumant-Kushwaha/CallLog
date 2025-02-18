@@ -11,4 +11,10 @@ data class CallLogItem(
     val type: Int,
     val date: LocalDate = LocalDate.now(),
     val count: Int = 1  // Default to 1 for backward compatibility
-) : Parcelable
+) : Parcelable {
+    companion object {
+        const val MISSED_CALL_TYPE = 3
+        const val RECEIVED_CALL_TYPE = 1
+        const val DIALED_CALL_TYPE = 2
+    }
+}

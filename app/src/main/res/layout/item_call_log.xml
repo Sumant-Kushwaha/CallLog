@@ -24,8 +24,8 @@
 
             <ImageView
                 android:id="@+id/ivContactIcon"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_marginEnd="16dp"
                 android:src="@drawable/ic_contact_default"
                 android:contentDescription="Contact Icon"/>
@@ -41,14 +41,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textStyle="bold"
-                    android:textSize="12sp"
+                    android:textSize="16sp"
                     android:text="Name"/>
 
                 <TextView
                     android:id="@+id/tvNumber"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
+                    android:textSize="16sp"
                     android:text="Number"/>
             </LinearLayout>
 
@@ -58,7 +58,7 @@
                 android:layout_height="30dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Call"
-                android:src="@android:drawable/ic_menu_call" />
+                android:src="@drawable/ic_callmenu" />
         </LinearLayout>
 
 <!--        <View-->

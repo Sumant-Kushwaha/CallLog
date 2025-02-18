@@ -36,12 +36,30 @@ data class TimeFilter(
         }
 
         fun groupCallsByDate(calls: List<CallLogItem>): List<TimeFilter> {
-            return calls
-                .groupBy { it.date } 
-                .map { (date, groupedCalls) -> 
-                    TimeFilter(date, groupedCalls)
+            // Group calls by date and number
+            val consolidatedCalls = calls
+                .groupBy { call -> 
+                    Pair(call.date, call.number)
                 }
-                .sortedByDescending { it.date }
-        }
+                .map { (_, groupedCalls) ->
+                    // Merge calls with the same date and number, keeping track of total count
+                    CallLogItem(
+                        number = groupedCalls.first().number,
+                        name = groupedCalls.first().name,
+                        type = groupedCalls.first().type,
+                        date = groupedCalls.first().date,
+                        count = groupedCalls.size
+                    )
+                }
+
+            // Group consolidated calls by date
+            val consolidatedGroups = consolidatedCalls
+                .groupBy { it.date }
+
+            // Create TimeFilters for each date group, preserving original order
+            return consolidatedGroups.map { (date, calls) ->
+                TimeFilter(date, calls)
+            }
+        }   
     }
 }
