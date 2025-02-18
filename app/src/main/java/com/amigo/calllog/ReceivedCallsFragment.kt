@@ -7,10 +7,17 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ReceivedCallsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var adapter: CallLogAdapter
+    private var calls: List<CallLogItem> = listOf()
 
     companion object {
         fun newInstance(calls: List<CallLogItem>): ReceivedCallsFragment {
@@ -32,8 +39,14 @@ class ReceivedCallsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
         
-        val calls = arguments?.getParcelableArrayList<CallLogItem>("calls") ?: listOf()
+        calls = arguments?.getParcelableArrayList("calls") ?: listOf()
+        setupRecyclerView()
+        setupSwipeRefresh()
+    }
+
+    private fun setupRecyclerView() {
         val timeFilters = TimeFilter.groupCallsByDate(calls)
 
         val items = mutableListOf<CallLogAdapter.ListItem>()
@@ -45,5 +58,28 @@ class ReceivedCallsFragment : Fragment() {
         adapter = CallLogAdapter(items)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = adapter
+    }
+
+    private fun setupSwipeRefresh() {
+        swipeRefreshLayout.setOnRefreshListener {
+            refreshCallLogs()
+        }
+    }
+
+    private fun refreshCallLogs() {
+        CoroutineScope(Dispatchers.IO).launch {
+            // Fetch call logs again
+            val context = requireContext()
+            val (_, received, _) = CallLogHelper.getCallLogs(context)
+            
+            withContext(Dispatchers.Main) {
+                // Update calls and refresh RecyclerView
+                calls = received.flatMap { it.calls }
+                setupRecyclerView()
+                
+                // Stop the refresh animation
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
     }
 }
