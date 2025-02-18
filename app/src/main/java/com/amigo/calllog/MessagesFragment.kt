@@ -1,6 +1,8 @@
 package com.amigo.calllog
 
 import android.Manifest
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
@@ -10,6 +12,7 @@ import android.provider.Telephony
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
@@ -18,9 +21,11 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.material.chip.Chip
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
 class MessagesFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
@@ -29,6 +34,14 @@ class MessagesFragment : Fragment() {
     private lateinit var emptyView: TextView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var chipGroup: ChipGroup
+    private lateinit var switchAutoReply: SwitchMaterial
+    private lateinit var editTextMessage: TextInputEditText
+    private lateinit var buttonSave: MaterialButton
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var headerLayout: View
+    private lateinit var expandableContent: View
+    private lateinit var expandIcon: ImageView
+    private lateinit var messagePreview: TextView
     private var currentFilter = MessageFilter.ALL
     private var allMessages = listOf<MessageItem>()
 
@@ -37,8 +50,14 @@ class MessagesFragment : Fragment() {
         private const val PERMISSION_REQUEST_CODE = 123
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.READ_SMS,
-            Manifest.permission.READ_CONTACTS
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.PROCESS_OUTGOING_CALLS
         )
+        private const val DEFAULT_MESSAGE = "Sorry, I can't take your call right now. I'll get back to you soon."
+        private const val PREF_AUTO_REPLY_ENABLED = "auto_reply_enabled"
+        private const val PREF_AUTO_REPLY_MESSAGE = "auto_reply_message"
     }
 
     enum class MessageFilter {
@@ -58,16 +77,26 @@ class MessagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
+        sharedPreferences = requireContext().getSharedPreferences("auto_reply_settings", Context.MODE_PRIVATE)
+        
         // Initialize views
         recyclerView = view.findViewById(R.id.recyclerView)
         progressBar = view.findViewById(R.id.progressBar)
         emptyView = view.findViewById(R.id.emptyView)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
         chipGroup = view.findViewById(R.id.chipGroup)
+        switchAutoReply = view.findViewById(R.id.switchAutoReply)
+        editTextMessage = view.findViewById(R.id.editTextMessage)
+        buttonSave = view.findViewById(R.id.buttonSave)
+        headerLayout = view.findViewById(R.id.headerLayout)
+        expandableContent = view.findViewById(R.id.expandableContent)
+        expandIcon = view.findViewById(R.id.expandIcon)
+        messagePreview = view.findViewById(R.id.messagePreview)
 
         setupRecyclerView()
         setupSwipeRefresh()
         setupChipGroup()
+        setupAutoReply()
         checkPermissionsAndLoadMessages()
     }
 
@@ -92,6 +121,65 @@ class MessagesFragment : Fragment() {
             }
             filterMessages()
         }
+    }
+
+    private fun setupAutoReply() {
+        // Load saved settings
+        switchAutoReply.isChecked = sharedPreferences.getBoolean(PREF_AUTO_REPLY_ENABLED, false)
+        val savedMessage = sharedPreferences.getString(PREF_AUTO_REPLY_MESSAGE, DEFAULT_MESSAGE)
+        editTextMessage.setText(savedMessage)
+        messagePreview.text = savedMessage
+        
+        editTextMessage.isEnabled = switchAutoReply.isChecked
+        buttonSave.isEnabled = switchAutoReply.isChecked
+
+        headerLayout.setOnClickListener {
+            toggleExpandableContent()
+        }
+
+        switchAutoReply.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                checkPermissions()
+            }
+            editTextMessage.isEnabled = isChecked
+            buttonSave.isEnabled = isChecked
+        }
+
+        buttonSave.setOnClickListener {
+            saveAutoReplySettings()
+        }
+
+        editTextMessage.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                messagePreview.text = s?.toString()
+            }
+        })
+    }
+
+    private fun toggleExpandableContent() {
+        val isExpanded = expandableContent.visibility == View.VISIBLE
+        expandableContent.visibility = if (isExpanded) View.GONE else View.VISIBLE
+        expandIcon.rotation = if (isExpanded) 0f else 180f
+    }
+
+    private fun saveAutoReplySettings() {
+        val message = editTextMessage.text?.toString()
+        if (message.isNullOrBlank()) {
+            editTextMessage.error = "Please enter a message"
+            return
+        }
+
+        sharedPreferences.edit().apply {
+            putBoolean(PREF_AUTO_REPLY_ENABLED, switchAutoReply.isChecked)
+            putString(PREF_AUTO_REPLY_MESSAGE, message)
+            apply()
+        }
+
+        messagePreview.text = message
+        toggleExpandableContent()
+        showMessage("Auto-reply settings saved")
     }
 
     private fun filterMessages() {
@@ -137,6 +225,22 @@ class MessagesFragment : Fragment() {
         }
     }
 
+    private fun checkPermissions() {
+        context?.let { ctx ->
+            val missingPermissions = REQUIRED_PERMISSIONS.filter {
+                ContextCompat.checkSelfPermission(ctx, it) != PackageManager.PERMISSION_GRANTED
+            }
+
+            if (missingPermissions.isNotEmpty()) {
+                ActivityCompat.requestPermissions(
+                    requireActivity(),
+                    missingPermissions.toTypedArray(),
+                    PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -144,10 +248,11 @@ class MessagesFragment : Fragment() {
     ) {
         when (requestCode) {
             PERMISSION_REQUEST_CODE -> {
-                if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                    loadMessages()
+                if (!grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                    switchAutoReply.isChecked = false
+                    showMessage("Permissions required for messages and auto-reply features")
                 } else {
-                    showError("Permissions denied. Cannot read messages or contacts.")
+                    loadMessages()
                 }
             }
             else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -161,9 +266,9 @@ class MessagesFragment : Fragment() {
 
         try {
             allMessages = getMessages()
-            filterMessages() // This will apply the current filter
+            filterMessages()
         } catch (e: Exception) {
-            showError("Error loading messages: ${e.message}")
+            showMessage("Error loading messages: ${e.message}")
         } finally {
             progressBar.visibility = View.GONE
             swipeRefreshLayout.isRefreshing = false
@@ -221,9 +326,9 @@ class MessagesFragment : Fragment() {
         return null
     }
 
-    private fun showError(message: String) {
+    private fun showMessage(message: String) {
         view?.let {
-            Snackbar.make(it, message, Snackbar.LENGTH_LONG).show()
+            android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 }
