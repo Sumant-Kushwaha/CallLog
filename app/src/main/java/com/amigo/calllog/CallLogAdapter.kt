@@ -66,7 +66,6 @@ class CallLogAdapter(private val items: List<ListItem>) :
     class CallViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvName)
         private val tvNumber: TextView = view.findViewById(R.id.tvNumber)
-        private val tvDuration: TextView = view.findViewById(R.id.tvDuration)
         private val btnCall: ImageButton = view.findViewById(R.id.btnCall)
 
         fun bind(call: CallLogItem) {
@@ -74,18 +73,6 @@ class CallLogAdapter(private val items: List<ListItem>) :
             val displayName = call.name ?: call.number
             tvName.text = if (call.count > 1) "$displayName (${call.count})" else displayName
             tvNumber.text = call.number
-            
-            // Format duration in hours, minutes, and seconds
-            val hours = call.duration / 3600
-            val minutes = (call.duration % 3600) / 60
-            val seconds = call.duration % 60
-            
-            val duration = when {
-                hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
-                minutes > 0 -> "${minutes}m ${seconds}s"
-                else -> "${seconds}s"
-            }
-            tvDuration.text = duration
 
             btnCall.setOnClickListener {
                 val context = it.context

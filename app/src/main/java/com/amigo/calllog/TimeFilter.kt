@@ -4,20 +4,17 @@ import android.os.Parcel
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.Parceler
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Parcelize
 data class TimeFilter(
-    val date: LocalDate,
+    val date: LocalDate = LocalDate.now(),
     val calls: List<CallLogItem>
 ) : Parcelable {
     val title: String = when {
-        date == LocalDate.now() -> "Today"
-        date == LocalDate.now().minusDays(1) -> "Yesterday"
-        else -> date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+        date == LocalDate.now() -> "Calls"
+        else -> "Calls"
     }
 
     companion object : Parceler<TimeFilter> {
@@ -38,16 +35,7 @@ data class TimeFilter(
         }
 
         fun groupCallsByDate(calls: List<CallLogItem>): List<TimeFilter> {
-            return calls
-                .groupBy { 
-                    Instant.ofEpochMilli(it.date)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate() 
-                }
-                .map { (date, groupedCalls) -> 
-                    TimeFilter(date, groupedCalls.sortedByDescending { it.date })
-                }
-                .sortedByDescending { it.date }
+            return listOf(TimeFilter(LocalDate.now(), calls))
         }
     }
 }

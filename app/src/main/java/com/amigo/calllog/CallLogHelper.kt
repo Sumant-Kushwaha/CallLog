@@ -2,9 +2,7 @@ package com.amigo.calllog
 
 import android.content.Context
 import android.provider.CallLog
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.Calendar
 
 object CallLogHelper {
@@ -16,9 +14,7 @@ object CallLogHelper {
         val projection = arrayOf(
             CallLog.Calls.NUMBER,
             CallLog.Calls.CACHED_NAME,
-            CallLog.Calls.TYPE,
-            CallLog.Calls.DATE,
-            CallLog.Calls.DURATION
+            CallLog.Calls.TYPE
         )
 
         context.contentResolver.query(
@@ -26,22 +22,18 @@ object CallLogHelper {
             projection,
             null,
             null,
-            CallLog.Calls.DATE + " DESC"
+            null
         )?.use { cursor ->
             val numberIndex = cursor.getColumnIndex(CallLog.Calls.NUMBER)
             val nameIndex = cursor.getColumnIndex(CallLog.Calls.CACHED_NAME)
             val typeIndex = cursor.getColumnIndex(CallLog.Calls.TYPE)
-            val dateIndex = cursor.getColumnIndex(CallLog.Calls.DATE)
-            val durationIndex = cursor.getColumnIndex(CallLog.Calls.DURATION)
 
             while (cursor.moveToNext()) {
                 val number = cursor.getString(numberIndex)
                 val name = cursor.getString(nameIndex)
                 val type = cursor.getInt(typeIndex)
-                val date = cursor.getLong(dateIndex)
-                val duration = cursor.getLong(durationIndex)
 
-                val callLogItem = CallLogItem(number, name, type, date, duration)
+                val callLogItem = CallLogItem(number, name, type)
 
                 when (type) {
                     CallLog.Calls.MISSED_TYPE -> missed.add(callLogItem)
@@ -59,41 +51,20 @@ object CallLogHelper {
     }
 
     private fun groupByTimePeriod(calls: List<CallLogItem>): List<TimeFilter> {
-        // Group calls by date and number, merging duplicate calls
+        // Group calls by number, merging duplicate calls
         val consolidatedCalls = calls
-            .groupBy { call ->
-                // Group by date and number
-                Pair(
-                    Instant.ofEpochMilli(call.date)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate(),
-                    call.number
-                )
-            }
-            .map { (key, groupedCalls) ->
-                // Merge calls with the same date and number
-                val mostRecentCall = groupedCalls.maxByOrNull { it.date }!!
+            .groupBy { call -> call.number }
+            .map { (_, groupedCalls) ->
+                // Merge calls with the same number
                 CallLogItem(
-                    number = mostRecentCall.number,
-                    name = mostRecentCall.name,
-                    type = mostRecentCall.type,
-                    date = mostRecentCall.date,
-                    duration = groupedCalls.sumOf { it.duration },
+                    number = groupedCalls.first().number,
+                    name = groupedCalls.first().name,
+                    type = groupedCalls.first().type,
                     count = groupedCalls.size
                 )
             }
 
-        // Group consolidated calls by date
-        val consolidatedGroups = consolidatedCalls
-            .groupBy { 
-                Instant.ofEpochMilli(it.date)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate() 
-            }
-
-        // Create TimeFilters for each date group
-        return consolidatedGroups.map { (date, calls) ->
-            TimeFilter(date, calls.sortedByDescending { it.date })
-        }.sortedByDescending { it.date }
+        // Create TimeFilters for the consolidated calls
+        return listOf(TimeFilter(LocalDate.now(), consolidatedCalls.sortedBy { it.number }))
     }
 }
